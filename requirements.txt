@@ -1,0 +1,14 @@
+# Google Calendar API + Auth
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+# Logging
+loguru
+
+# Data validation / models
+pydantic
+
+# Testing
+pytest
+#

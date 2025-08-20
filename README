@@ -1,0 +1,28 @@
+# Ollender
+
+**Ollender** is a personal productivity assistant that uses a local LLM (via Ollama) to plan your day. Give it your tasks, and it will intelligently schedule them in your Google Calendar.
+
+## Features
+
+- Connects to Google Calendar to fetch and create events.
+- Takes a list of tasks and suggests optimal times to complete them.
+- Automatically inserts scheduled tasks into your calendar.
+- Fully local LLM integration with Ollama for task planning.
+- Helps you stay organized and productive without manual scheduling.
+
+## How It Works
+
+1. You provide a list of tasks you want to complete.
+2. Ollender uses a local LLM to determine the best order and time slots for each task.
+3. The app automatically creates events in your Google Calendar for each task.
+4. You follow the suggested schedule for a more efficient day.
+
+## Goals
+
+- Streamline personal productivity with minimal manual effort.
+- Combine AI planning with real-world calendar management.
+- Keep everything running locally and securely.
+
+## License
+
+MIT License
