@@ -1,0 +1,34 @@
+{
+  "tasks": [
+    {
+      "title": "Wash clothes",
+      "description": "Weekly task for washing clothes",
+      "completed": false,
+      "reoccuring_interval": "weekly"
+    },
+    {
+      "title": "Grocery shopping",
+      "description": "Weekly task for grocery shopping",
+      "completed": false,
+      "reoccuring_interval": "weekly"
+    },
+    {
+      "title": "Clean the house",
+      "description": "Weekly task for cleaning the house",
+      "completed": false,
+      "reoccuring_interval": "weekly"
+    },
+    {
+      "title": "Pay bills",
+      "description": "Monthly task for paying bills",
+      "completed": false,
+      "reoccuring_interval": "monthly"
+    },
+    {
+      "title": "Check bank statements",
+      "description": "Monthly task for checking bank statements",
+      "completed": false,
+      "reoccuring_interval": "monthly"
+    }
+  ]
+}

@@ -46,9 +46,7 @@ class OllamaConnector:
         }
 
         try:
-            response = requests.post(
-                self.api_url, headers=headers, json=data, timeout=30
-            )
+            response = requests.post(self.api_url, headers=headers, json=data, timeout=30)
             response.raise_for_status()
             result = response.json()
             return result.get("message", {}).get("content", "")
@@ -71,9 +69,7 @@ class OllamaConnector:
         }
 
         try:
-            response = requests.post(
-                self.api_url, headers=headers, json=data, timeout=30
-            )
+            response = requests.post(self.api_url, headers=headers, json=data, timeout=30)
             response.raise_for_status()
             result = response.json()
             assistant_reply = result.get("message", {}).get("content", "")

@@ -1,28 +1,23 @@
-from loguru import logger
-import sys
-
-logger.add(
-    sys.stderr,
-    format=" {level} {message} {time}",
-    filter="my_module",
-)
-logger.add("file_{time}.log")
+from multipledispatch import dispatch
 
 
-def main():
-    logger.info("Hello world")
-    logger.debug("What happend here ?")
-    logger.error("Something failed here")
-    x = {
-        "A": 3,
-        "B": 4,
-    }
-
-    logger.info(f"Recieved : {x}")
-
-    logger.critical("What is happening ?")
-
-    ValueError("What happened?")
+@dispatch(int, int)
+def fun(arg, arg2):
+    print("This is a number", arg)
 
 
-main()
+@dispatch(str, str)
+def fun(arg, arg2):
+    print("This is a str", arg)
+
+
+@dispatch(float)
+def fun(arg):
+    print("This is a float", arg)
+
+
+fun(3, 4)
+
+
+fun(3.1)
+fun("three point one", "yam an")
