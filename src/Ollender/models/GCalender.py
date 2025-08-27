@@ -9,6 +9,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from loguru import logger
 from multipledispatch import dispatch
+from data_models.Event import Event
 
 
 class GoogleCalendarConnector:
@@ -17,7 +18,7 @@ class GoogleCalendarConnector:
     Handles authentication, fetching, and creating events.
     """
 
-    SCOPES = ["https://www.googleapis.com/auth/calendar"]
+    SCOPES = ['https://www.googleapis.com/auth/calendar']
 
     def __init__(self, credentials_file: str = "credentials.json", token_file: str = "token.json"):
         self.credentials_file = credentials_file
@@ -45,7 +46,7 @@ class GoogleCalendarConnector:
 
         self.service = build("calendar", "v3", credentials=self.creds)
 
-    def list_events(self, calendar_id: str = "primary", max_results: int = 10) -> List[Dict]:
+    def list_events(self, calendar_id: str = "primary", max_results: int = 10) -> List[Event]:
         """Return upcoming events from the specified calendar."""
         now = datetime.datetime.utcnow().isoformat() + "Z"
         events_result = (
@@ -59,22 +60,31 @@ class GoogleCalendarConnector:
             )
             .execute()
         )
-        return events_result.get("items", [])
+        events = []
+        logger.info(f"Fetched {len(events_result.get('items', []))} events")
+        for item in events_result.get("items", []):
+            event = Event(
+                title=item.get("summary"),
+                description=item.get("description"),
+                start_time=datetime.datetime.fromisoformat(item["start"]["dateTime"]) if "start" in item and "dateTime" in item["start"] else None,
+                end_time=datetime.datetime.fromisoformat(item["end"]["dateTime"]) if "end" in item and "dateTime" in item["end"] else None,
+            )
+            events.append(event)
+        return events
 
     def create_event(
         self,
-        summary: str,
-        start: datetime.datetime,
-        end: datetime.datetime,
+        event: Event,
         calendar_id: str = "primary",
     ) -> Dict:
         """Create a new calendar event."""
-        event = {
-            "summary": summary,
-            "start": {"dateTime": start.isoformat(), "timeZone": "UTC"},
-            "end": {"dateTime": end.isoformat(), "timeZone": "UTC"},
+        event_data = {
+            "summary": event.title,
+            "description": event.description,
+            "start": {"dateTime": event.start_time.isoformat(), "timeZone": "UTC"},
+            "end": {"dateTime": event.end_time.isoformat(), "timeZone": "UTC"},
         }
-        return self.service.events().insert(calendarId=calendar_id, body=event).execute()
+        return self.service.events().insert(calendarId=calendar_id, body=event_data).execute()
 
 
 if __name__ == "__main__":

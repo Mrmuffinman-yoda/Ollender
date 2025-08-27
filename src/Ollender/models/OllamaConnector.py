@@ -9,18 +9,17 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+OLLAMA_TIMEOUT = 90
 
 class OllamaConnector:
     def __init__(
         self,
         system_prompt: str = None,
-        weak_model: str = "llama3.1:8b",
-        strong_model: str = "gpt-oss:20b",
+        model:str = "gpt-oss:20b",
     ):
         base_url = os.getenv("OLLAMA_HOST", "http://192.168.1.100:11435")
         self.api_url = f"{base_url}/api/chat"
-        self.strong_model = strong_model
-        self.weak_model = weak_model
+        self.model = model
         self.system_prompt = system_prompt
 
         # Conversation memory for continuous mode
@@ -28,7 +27,7 @@ class OllamaConnector:
         if self.system_prompt:
             self.messages.append({"role": "system", "content": self.system_prompt})
 
-    def ask(self, user_prompt: str, use_strong_model: bool = True) -> str:
+    def ask(self, user_prompt: str) -> str:
         """
         Single-shot query to Ollama (stateless).
         """
@@ -40,13 +39,13 @@ class OllamaConnector:
         messages.append({"role": "user", "content": user_prompt})
 
         data = {
-            "model": self.strong_model if use_strong_model else self.weak_model,
+            "model": self.model,
             "messages": messages,
             "stream": False,
         }
 
         try:
-            response = requests.post(self.api_url, headers=headers, json=data, timeout=30)
+            response = requests.post(self.api_url, headers=headers, json=data, timeout=OLLAMA_TIMEOUT)
             response.raise_for_status()
             result = response.json()
             return result.get("message", {}).get("content", "")
@@ -54,7 +53,7 @@ class OllamaConnector:
             print(f"Error communicating with Ollama API: {e}")
             return None
 
-    def ask_continuous(self, user_prompt: str, use_strong_model: bool = True) -> str:
+    def ask_continuous(self, user_prompt: str) -> str:
         """
         Multi-turn conversation with memory.
         """
@@ -63,13 +62,13 @@ class OllamaConnector:
         self.messages.append({"role": "user", "content": user_prompt})
 
         data = {
-            "model": self.strong_model if use_strong_model else self.weak_model,
+            "model": self.model,
             "messages": self.messages,
             "stream": False,
         }
 
         try:
-            response = requests.post(self.api_url, headers=headers, json=data, timeout=30)
+            response = requests.post(self.api_url, headers=headers, json=data, timeout=90)
             response.raise_for_status()
             result = response.json()
             assistant_reply = result.get("message", {}).get("content", "")
@@ -91,13 +90,12 @@ class OllamaConnector:
     def yes_or_no(
         self,
         question: str,
-        use_strong_model: bool = True,
     ) -> bool:
         """
         Ask a yes/no question, if the answer contains yes return True, if it contains no return False.
         """
         question += " (Please only answer with 'yes' or 'no')"
-        response = self.ask(question, use_strong_model=use_strong_model)
+        response = self.ask(question)
         logging.info(f"Received response: {response}")
         if "yes" in response.lower():
             return True
