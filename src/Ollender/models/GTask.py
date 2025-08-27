@@ -19,9 +19,7 @@ class GTask:
 
     SCOPES = ["https://www.googleapis.com/auth/tasks"]
 
-    def __init__(
-        self, credentials_file: str = "credentials.json", token_file: str = "token.json"
-    ):
+    def __init__(self, credentials_file: str = "credentials.json", token_file: str = "token.json"):
         """
         Initializes the connector.
 
@@ -40,9 +38,7 @@ class GTask:
     def authenticate(self) -> None:
         """Authenticate user and initialize the Google Tasks service."""
         if os.path.exists(self.token_file):
-            self.creds = Credentials.from_authorized_user_file(
-                self.token_file, self.SCOPES
-            )
+            self.creds = Credentials.from_authorized_user_file(self.token_file, self.SCOPES)
 
         # If there are no (valid) credentials available, let the user log in.
         if not self.creds or not self.creds.valid:
@@ -51,19 +47,13 @@ class GTask:
                 self.creds.refresh(Request())
             else:
                 if not os.path.exists(self.credentials_file):
-                    logger.error(
-                        f"Credentials file not found at: {self.credentials_file}"
-                    )
+                    logger.error(f"Credentials file not found at: {self.credentials_file}")
                     raise FileNotFoundError(
                         f"Error: The credentials file '{self.credentials_file}' was not found."
                     )
 
-                logger.info(
-                    "No valid credentials found, starting authentication flow..."
-                )
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_file, self.SCOPES
-                )
+                logger.info("No valid credentials found, starting authentication flow...")
+                flow = InstalledAppFlow.from_client_secrets_file(self.credentials_file, self.SCOPES)
                 # Set open_browser=False to match the calendar class style
                 self.creds = flow.run_local_server(port=0, open_browser=False)
 
@@ -106,9 +96,7 @@ class GTask:
                 .execute()
             )
             tasks = results.get("items", [])
-            logger.success(
-                f"Retrieved {len(tasks)} tasks from tasklist '{tasklist_id}'."
-            )
+            logger.success(f"Retrieved {len(tasks)} tasks from tasklist '{tasklist_id}'.")
             return tasks
         except HttpError as err:
             logger.error(f"An API error occurred while retrieving tasks: {err}")
@@ -143,13 +131,9 @@ class GTask:
                     due = due.replace(tzinfo=timezone.utc)
                 task_body["due"] = due.isoformat().replace("+00:00", "Z")
             created_task = (
-                self.service.tasks()
-                .insert(tasklist=tasklist_id, body=task_body)
-                .execute()
+                self.service.tasks().insert(tasklist=tasklist_id, body=task_body).execute()
             )
-            logger.success(
-                f"Task created: '{created_task['title']}' (ID: {created_task['id']})"
-            )
+            logger.success(f"Task created: '{created_task['title']}' (ID: {created_task['id']})")
             return created_task
         except HttpError as err:
             logger.error(f"An API error occurred while creating a task: {err}")

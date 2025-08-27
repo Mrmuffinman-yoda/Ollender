@@ -1,5 +1,6 @@
 class Model:
     """Sample model class."""
+
     def __init__(self, identifier):
         self.identifier = identifier
 

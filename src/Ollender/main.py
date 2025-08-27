@@ -5,6 +5,8 @@ from data_models.task import Task, RegularTask, RecurringTask
 from models.TaskManager import TaskManager
 
 logger.add("logs/task_log_{time:YYYY-MM-DD_HH-mm-ss}.log", rotation="1 MB")
+
+
 def main():
     logger.info("Program started")
 
