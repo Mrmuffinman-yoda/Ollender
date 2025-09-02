@@ -18,7 +18,7 @@ class GoogleCalendarConnector:
     Handles authentication, fetching, and creating events.
     """
 
-    SCOPES = ['https://www.googleapis.com/auth/calendar']
+    SCOPES = ["https://www.googleapis.com/auth/calendar"]
 
     def __init__(self, credentials_file: str = "credentials.json", token_file: str = "token.json"):
         self.credentials_file = credentials_file
@@ -66,8 +66,16 @@ class GoogleCalendarConnector:
             event = Event(
                 title=item.get("summary"),
                 description=item.get("description"),
-                start_time=datetime.datetime.fromisoformat(item["start"]["dateTime"]) if "start" in item and "dateTime" in item["start"] else None,
-                end_time=datetime.datetime.fromisoformat(item["end"]["dateTime"]) if "end" in item and "dateTime" in item["end"] else None,
+                start_time=(
+                    datetime.datetime.fromisoformat(item["start"]["dateTime"])
+                    if "start" in item and "dateTime" in item["start"]
+                    else None
+                ),
+                end_time=(
+                    datetime.datetime.fromisoformat(item["end"]["dateTime"])
+                    if "end" in item and "dateTime" in item["end"]
+                    else None
+                ),
             )
             events.append(event)
         return events
@@ -78,12 +86,16 @@ class GoogleCalendarConnector:
         calendar_id: str = "primary",
     ) -> Dict:
         """Create a new calendar event."""
+
+        debug = True
         event_data = {
             "summary": event.title,
             "description": event.description,
             "start": {"dateTime": event.start_time.isoformat(), "timeZone": "UTC"},
             "end": {"dateTime": event.end_time.isoformat(), "timeZone": "UTC"},
         }
+        if debug:
+            return
         return self.service.events().insert(calendarId=calendar_id, body=event_data).execute()
 
 

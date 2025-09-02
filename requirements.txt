@@ -17,3 +17,5 @@ multipledispatch
 
 #UI
 flask
+
+ollama

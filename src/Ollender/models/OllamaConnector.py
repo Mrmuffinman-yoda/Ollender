@@ -1,24 +1,48 @@
 import os
-import requests
-import json
 import datetime
-import logging
+from loguru import logger
+import ollama
+import requests
 
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-OLLAMA_TIMEOUT = 90
 
 class OllamaConnector:
+    """
+    A connector class to interact with the Ollama API using the official ollama library.
+    This class supports both single-shot (stateless) and continuous (stateful) conversations.
+    """
+
     def __init__(
         self,
         system_prompt: str = None,
-        model:str = "gpt-oss:20b",
+        model: str = "llama3",  # A more common default model
     ):
-        base_url = os.getenv("OLLAMA_HOST", "http://192.168.1.100:11435")
-        self.api_url = f"{base_url}/api/chat"
+        """
+        Initializes the OllamaConnector.
+
+        Args:
+            system_prompt (str, optional): A prompt to set the behavior of the assistant. Defaults to None.
+            model (str, optional): The name of the Ollama model to use. Defaults to "llama3".
+        """
+        # Check for the OLLAMA_HOST environment variable
+        host = os.getenv("OLLAMA_HOST")
+        if host:
+            logger.info("Found OLLAMA_HOST environment variable.")
+            logger.info(f"Connecting to {host}")
+        else:
+            host = "http://127.0.0.1:11435"
+            logger.info(f"OLLAMA_HOST not set. Using default host: {host}")
+
+        # check if host is reachable
+        try:
+            response = requests.get(host, timeout=5)
+            logger.info(response)
+        except requests.exceptions.ConnectTimeout as e:
+            logger.error(f"Failed to connect to Ollama host {host}: {e}")
+            raise
+
+        # Initialize the Ollama client with the specified host and timeout
+        self.client = ollama.Client(host=host, timeout=90)
+
         self.model = model
         self.system_prompt = system_prompt
 
@@ -29,94 +53,66 @@ class OllamaConnector:
 
     def ask(self, user_prompt: str) -> str:
         """
-        Single-shot query to Ollama (stateless).
-        """
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        Sends a single-shot, stateless query to Ollama.
+        Conversation history is not maintained.
 
+        Args:
+            user_prompt (str): The user's prompt.
+
+        Returns:
+            str: The assistant's response, or an empty string if an error occurs.
+        """
         messages = []
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
         messages.append({"role": "user", "content": user_prompt})
 
-        data = {
-            "model": self.model,
-            "messages": messages,
-            "stream": False,
-        }
-
         try:
-            response = requests.post(self.api_url, headers=headers, json=data, timeout=OLLAMA_TIMEOUT)
-            response.raise_for_status()
-            result = response.json()
-            return result.get("message", {}).get("content", "")
-        except requests.exceptions.RequestException as e:
-            print(f"Error communicating with Ollama API: {e}")
-            return None
+            # Send the request to the Ollama API via the client
+            response = self.client.chat(model=self.model, messages=messages)
+            return response.get("message", {}).get("content", "")
+        except ollama.ResponseError as e:
+            logger.error(f"Ollama API Error: {e.error}")
+            return f"Error: {e.error}"
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}")
+            return ""
 
     def ask_continuous(self, user_prompt: str) -> str:
         """
-        Multi-turn conversation with memory.
-        """
-        headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        Sends a query to Ollama as part of a multi-turn, stateful conversation.
+        Conversation history is maintained.
 
+        Args:
+            user_prompt (str): The user's prompt.
+
+        Returns:
+            str: The assistant's response, or an empty string if an error occurs.
+        """
         self.messages.append({"role": "user", "content": user_prompt})
 
-        data = {
-            "model": self.model,
-            "messages": self.messages,
-            "stream": False,
-        }
-
         try:
-            response = requests.post(self.api_url, headers=headers, json=data, timeout=90)
-            response.raise_for_status()
-            result = response.json()
-            assistant_reply = result.get("message", {}).get("content", "")
+            # Send the entire conversation history to the Ollama API
+            response = self.client.chat(model=self.model, messages=self.messages)
+            assistant_reply = response.get("message", {}).get("content", "")
+
+            # If a reply was received, add it to the conversation history
             if assistant_reply:
                 self.messages.append({"role": "assistant", "content": assistant_reply})
+
             return assistant_reply
-        except requests.exceptions.RequestException as e:
-            print(f"Error communicating with Ollama API: {e}")
-            return None
+        except ollama.ResponseError as e:
+            logger.error(f"Ollama API Error: {e.error}")
+            return f"Error: {e.error}"
+        except Exception as e:
+            logger.error(f"An unexpected error occurred: {e}")
+            return ""
 
     def reset_memory(self):
         """
-        Clear conversation history but keep system prompt if set.
+        Clears the conversation history but retains the initial system prompt.
         """
         self.messages = []
         if self.system_prompt:
             self.messages.append({"role": "system", "content": self.system_prompt})
-
-    def yes_or_no(
-        self,
-        question: str,
-    ) -> bool:
-        """
-        Ask a yes/no question, if the answer contains yes return True, if it contains no return False.
-        """
-        question += " (Please only answer with 'yes' or 'no')"
-        response = self.ask(question)
-        logging.info(f"Received response: {response}")
-        if "yes" in response.lower():
-            return True
-        elif "no" in response.lower():
-            return False
-
-
-if __name__ == "__main__":
-    system_prompt = f"""
-    You are a helpful assistant. Your job is to take tasks and assign them a time and date to complete them.
-    Return the task title, task description, time and date to complete the task in a JSON format.
-    Example:
-    {{
-        "task_title": "Buy groceries",
-        "task_description": "Buy milk, eggs, and bread",
-        "time_to_complete": "2023-10-01T10:00:00Z"
-    }}
-    The current date and time is {datetime.datetime.now().isoformat()}.
-    """
-
-    connector = OllamaConnector(system_prompt=system_prompt)
-
-    response = connector.ask("Order socks online?")
-    print(f"Response: {response}")
+        logger.info("Conversation memory has been reset.")
